@@ -1,5 +1,4 @@
-﻿using System;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Newtonsoft.Json;
@@ -13,14 +12,14 @@ class Server
     public Server(int port)
     {
         listener = new TcpListener(IPAddress.Any, port);
-        startTime = DateTime.Now;
         isRunning = true;
+        startTime = DateTime.Now;
     }
 
     public void Start()
     {
         listener.Start();
-        Console.WriteLine("SERVER`S UP...");
+        Console.WriteLine("SERVER IS UP...");
 
         while (isRunning)
         {
@@ -52,19 +51,18 @@ class Server
             case "info":
                 return JsonConvert.SerializeObject(new { command = "info", version = "1.0", creationDate = startTime.ToString("yyyy-MM-dd") });
             case "help":
-                return JsonConvert.SerializeObject(new { command = "help", commands = new string[] { "uptime - shows the lifetime of the server", "info - shows the current version and server start date", "help - shuts down the server" } });
+                return JsonConvert.SerializeObject(new { command = "help", commands = new string[] { "uptime - shows the lifetime of the server", "info - shows the current version and server start date", "help - lists available commands", "stop - shuts down the server" } });
             case "stop":
                 return JsonConvert.SerializeObject(new { command = "stop", message = "SERVER CLOSED..." });
             default:
-                return JsonConvert.SerializeObject(new { error = "unknown command", command = command, message = "try again" });
+                return JsonConvert.SerializeObject(new { error = "unknown command", command, message = "Try 'help' for a list of available commands." });
         }
     }
-}
 
-class Program
-{
     static void Main(string[] args)
     {
-        new Server(12345).Start();
+        int port = 12345;
+        Server server = new(port);
+        server.Start();
     }
 }
