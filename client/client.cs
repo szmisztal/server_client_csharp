@@ -1,12 +1,11 @@
-﻿using System;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 using System.Text;
 
 class Client
 {
     public void Start(string server, int port)
     {
-        using (TcpClient client = new TcpClient(server, port))
+        using (TcpClient client = new(server, port))
         using (NetworkStream stream = client.GetStream())
         {
             Console.WriteLine("COMMAND:");
@@ -27,13 +26,15 @@ class Client
             }
         }
     }
-}
 
-class Program
-{
     static void Main(string[] args)
     {
-        new Client().Start("127.0.0.1", 12345);
+        Console.WriteLine("ClIENT`S UP...");
+        Client client = new();
+
+        string server = "localhost";
+        int port = 12345;
+
+        client.Start(server, port);
     }
 }
-
