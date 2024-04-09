@@ -23,20 +23,38 @@ class Server
 
         while (isRunning)
         {
-            Socket client = listener.AcceptSocket();
-            byte[] buffer = new byte[1024];
-            int size = client.Receive(buffer);
-            string command = Encoding.UTF8.GetString(buffer, 0, size).Trim();
-
-            string response = ProcessCommand(command);
-            client.Send(Encoding.UTF8.GetBytes(response));
-
-            if (command.Equals("stop", StringComparison.OrdinalIgnoreCase))
+            using (Socket client = listener.AcceptSocket())
             {
-                isRunning = false;
-            }
+                Console.WriteLine("CLIENT CONNECTED");
+                while (isRunning && client.Connected)
+                {
+                    try
+                    {
+                        byte[] buffer = new byte[1024];
+                        int size = client.Receive(buffer);
+                        if (size == 0)
+                        {
+                            break;
+                        }
 
-            client.Close();
+                        string command = Encoding.UTF8.GetString(buffer, 0, size).Trim();
+                        string response = ProcessCommand(command);
+                        client.Send(Encoding.UTF8.GetBytes(response));
+
+                        if (command.Equals("stop", StringComparison.OrdinalIgnoreCase))
+                        {
+                            isRunning = false;
+                        }
+                    }
+                    catch (SocketException ex)
+                    {
+                        Console.WriteLine($"Socket exception: {ex.Message}");
+                        break;
+                    }
+                }
+
+                Console.WriteLine("CLIENT DISCONNECTED");
+            }
         }
 
         listener.Stop();
