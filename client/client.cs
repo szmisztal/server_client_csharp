@@ -6,6 +6,18 @@ class Client
 {
     private bool isRunning = true;
 
+    private void SendCommand(NetworkStream stream, string command)
+    {
+        byte[] data = Encoding.UTF8.GetBytes(command);
+        stream.Write(data, 0, data.Length);
+
+        byte[] buffer = new byte[1024];
+        int bytesRead = stream.Read(buffer, 0, buffer.Length);
+        string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+        Console.WriteLine("Response: " + response);
+    }
+
     public void Start(string server, int port)
     {
         using (TcpClient client = new TcpClient(server, port))
@@ -13,29 +25,38 @@ class Client
         {
             while (isRunning)
             {
-                Console.WriteLine("COMMAND:");
+                Console.WriteLine("Enter command:");
                 string command = Console.ReadLine();
 
                 if (string.IsNullOrEmpty(command))
                 {
-                    continue; 
+                    continue;
                 }
 
-                byte[] data = Encoding.UTF8.GetBytes(command);
-                stream.Write(data, 0, data.Length);
-
-                byte[] buffer = new byte[1024];
-                int bytesRead = stream.Read(buffer, 0, buffer.Length);
-                string response = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-
-                Console.WriteLine("Response: " + response);
-
-                if (command.Equals("stop", StringComparison.OrdinalIgnoreCase))
+                if (command.ToLower().Equals("stop"))
                 {
+                    SendCommand(stream, command);
                     isRunning = false;
+                    continue;
+                }
+                else if (command.ToLower().StartsWith("register"))
+                {
+                    Console.WriteLine("Enter username:");
+                    string username = Console.ReadLine();
+                    Console.WriteLine("Enter password:");
+                    string password = Console.ReadLine();
+                    Console.WriteLine("Enter email:");
+                    string email = Console.ReadLine();
+
+                    string fullCommand = $"register {username} {password} {email}";
+                    SendCommand(stream, fullCommand);
+                }
+                else
+                {
+                    SendCommand(stream, command);
                 }
             }
-        }  
+        }
     }
 
     static void Main(string[] args)
