@@ -10,13 +10,19 @@ class Server
     private TcpListener listener;
     private bool isRunning;
     private DateTime startTime;
-    private IConfiguration Configuration; 
+    private IConfiguration Configuration;
+    private DatabaseManager dbManager;
+    private UserRepository userRepository;
+
     public Server(int port)
     {
         Configuration = new ConfigurationBuilder()
             .SetBasePath(Directory.GetCurrentDirectory())  
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
             .Build();
+
+        dbManager = new DatabaseManager(Configuration.GetConnectionString("DefaultConnection"));
+        userRepository = new UserRepository(dbManager);
 
         listener = new TcpListener(IPAddress.Any, port);
         isRunning = true;
@@ -69,20 +75,33 @@ class Server
 
     private string ProcessCommand(string command)
     {
-        var someSetting = Configuration["SomeConfigurationKey"];
-
-        switch (command.ToLower())
+        var parts = command.Split(' ');
+        switch (parts[0].ToLower())
         {
             case "uptime":
                 return JsonConvert.SerializeObject(new { command = "uptime", uptime = (DateTime.Now - startTime).ToString() });
             case "info":
-                return JsonConvert.SerializeObject(new { command = "info", version = "1.0", creationDate = startTime.ToString("yyyy-MM-dd") });
+                return JsonConvert.SerializeObject(new { command = "info", version = "0.2.1", creationDate = startTime.ToString("yyyy-MM-dd") });
             case "help":
-                return JsonConvert.SerializeObject(new { command = "help", commands = new string[] { "uptime - shows the lifetime of the server", "info - shows the current version and server start date", "help - lists available commands", "stop - shuts down the server" } });
+                return JsonConvert.SerializeObject(new { command = "help", commands = new string[] { "register - sign up new user", "uptime - shows the lifetime of the server", "info - shows the current version and server start date", "help - lists available commands", "stop - shuts down the server", "register <username> <password> <email> - registers a new user" } });
+            case "register":
+                if (parts.Length < 4)
+                {
+                    return "Insufficient data to register. Usage: register <username> <password> <email>";
+                }
+                try
+                {
+                    userRepository.AddUser(parts[1], parts[2], parts[3]);
+                    return "User registered successfully.";
+                }
+                catch (Exception ex)
+                {
+                    return $"Failed to register user: {ex.Message}";
+                }
             case "stop":
                 return JsonConvert.SerializeObject(new { command = "stop", message = "SERVER CLOSED..." });
             default:
-                return JsonConvert.SerializeObject(new { error = "unknown command", command, message = "Try 'help' for a list of available commands." });
+                return JsonConvert.SerializeObject(new { error = "unknown command", command = parts[0], message = "Try 'help' for a list of available commands." });
         }
     }
 
