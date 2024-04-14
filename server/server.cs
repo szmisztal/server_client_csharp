@@ -1,16 +1,23 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using Newtonsoft.Json;
+using Microsoft.Extensions.Configuration; 
 
 class Server
 {
     private TcpListener listener;
     private bool isRunning;
     private DateTime startTime;
-
+    private IConfiguration Configuration; 
     public Server(int port)
     {
+        Configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())  
+            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+            .Build();
+
         listener = new TcpListener(IPAddress.Any, port);
         isRunning = true;
         startTime = DateTime.Now;
@@ -62,6 +69,8 @@ class Server
 
     private string ProcessCommand(string command)
     {
+        var someSetting = Configuration["SomeConfigurationKey"];
+
         switch (command.ToLower())
         {
             case "uptime":
@@ -80,6 +89,10 @@ class Server
     static void Main(string[] args)
     {
         int port = 12345;
+        if (args.Length > 0)
+        {
+            port = int.Parse(args[0]); 
+        }
         Server server = new(port);
         server.Start();
     }
