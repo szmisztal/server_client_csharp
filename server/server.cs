@@ -83,7 +83,7 @@ class Server
             case "info":
                 return JsonConvert.SerializeObject(new { command = "info", version = "0.2.1", creationDate = startTime.ToString("yyyy-MM-dd") });
             case "help":
-                return JsonConvert.SerializeObject(new { command = "help", commands = new string[] { "register - sign up new user", "uptime - shows the lifetime of the server", "info - shows the current version and server start date", "help - lists available commands", "stop - shuts down the server", "register <username> <password> <email> - registers a new user" } });
+                return JsonConvert.SerializeObject(new { command = "help", commands = new string[] { "uptime - shows the lifetime of the server", "info - shows the current version and server start date", "help - lists available commands", "stop - shuts down the server", "register <username> <password> <email> - registers a new user" } });
             case "register":
                 if (parts.Length < 4)
                 {
