@@ -26,8 +26,42 @@ public class UserRepository
         }
     }
 
+    public bool ValidateUser(string username, string password, out User validatedUser)
+    {
+        using (var connection = _dbManager.GetConnection())
+        {
+            connection.Open();
+            var command = new SqlCommand("SELECT * FROM Users WHERE Username = @Username", connection);
+            command.Parameters.AddWithValue("@Username", username);
+
+            using (var reader = command.ExecuteReader())
+            {
+                if (reader.Read())
+                {
+                    string storedHash = reader["PasswordHash"].ToString();
+                    if (BCrypt.Net.BCrypt.Verify(password, storedHash))
+                    {
+                        validatedUser = new User
+                        {
+                            UserId = (int)reader["UserId"],
+                            Username = (string)reader["Username"],
+                            PasswordHash = storedHash,
+                            Email = (string)reader["Email"],
+                            CreateDate = (DateTime)reader["CreateDate"]
+                        };
+                        return true;
+                    }
+                }
+            }
+        }
+        validatedUser = null;
+        return false;
+    }
+
     private string HashPassword(string password)
     {
         return BCrypt.Net.BCrypt.HashPassword(password);
     }
 }
+
+
