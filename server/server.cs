@@ -13,6 +13,7 @@ class Server
     private IConfiguration Configuration;
     private DatabaseManager dbManager;
     private UserRepository userRepository;
+    private MessageRepository messageRepository;
 
     public Server(int port)
     {
@@ -94,12 +95,36 @@ class Server
                 }
                 if (parts[0].ToLower() == "info")
                 {
-                    return JsonConvert.SerializeObject(new { command = "info", version = "0.3.0", creationDate = startTime.ToString("yyyy-MM-dd") });
+                    return JsonConvert.SerializeObject(new { command = "info", version = "0.9.0", creationDate = startTime.ToString("yyyy-MM-dd") });
                 }
                 break;
 
             case "help":
-                return JsonConvert.SerializeObject(new { command = "help", commands = new string[] { "uptime - shows the lifetime of the server", "info - shows the current version and server start date", "help - lists available commands", "stop - shuts down the server", "register <username> <password> <email> - registers a new user", "login <username> <password> - sign in the user", "logout - sign out the user" } });
+                return JsonConvert.SerializeObject(new { command = "help", commands = new string[] { 
+                    "uptime - shows the lifetime of the server", 
+                    "info - shows the current version and server start date", 
+                    "help - lists available commands", "stop - shuts down the server",
+                    "send - send message to other user",
+                    "read - read your messages",
+                    "register <username> <password> <email> - registers a new user", 
+                    "login <username> <password> - sign in the user", 
+                    "logout - sign out the user" } 
+                });
+
+            case "send":
+                if (!session.IsAuthenticated)
+                    return "You must be logged in to send messages.";
+                if (parts.Length < 3)
+                    return "Usage: send <receiver> <message>";
+                messageRepository.AddMessage(session.Username, parts[1], string.Join(" ", parts.Skip(2)));
+                return "Message sent.";
+
+            case "read":
+                if (!session.IsAuthenticated)
+                    return "You must be logged in to read messages.";
+                var messages = messageRepository.GetMessagesForUser(session.Username);
+                var response = JsonConvert.SerializeObject(messages);
+                return response;
 
             case "register":
                 if (parts.Length < 4)
