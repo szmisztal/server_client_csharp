@@ -150,10 +150,13 @@ class Server
                 {
                     return "Insufficient data to login. Usage: login <username> <password>";
                 }
-                bool isValidUser = userRepository.ValidateUser(parts[1], parts[2]);
+
+                User validatedUser; // Deklaracja zmiennej dla parametru wyjściowego
+                bool isValidUser = userRepository.ValidateUser(parts[1], parts[2], out validatedUser);
                 if (isValidUser)
                 {
                     session.Authenticate(parts[1]);
+                    // Tutaj możesz dodać więcej informacji do sesji, jeśli to potrzebne
                     return "Login successful.";
                 }
                 else
