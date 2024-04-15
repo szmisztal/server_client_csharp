@@ -39,6 +39,8 @@ class Server
             using (Socket client = listener.AcceptSocket())
             {
                 Console.WriteLine("CLIENT CONNECTED");
+                Session session = new Session(); 
+
                 while (isRunning && client.Connected)
                 {
                     try
@@ -51,10 +53,10 @@ class Server
                         }
 
                         string command = Encoding.UTF8.GetString(buffer, 0, size).Trim();
-                        string response = ProcessCommand(command);
+                        string response = ProcessCommand(command, session);
                         client.Send(Encoding.UTF8.GetBytes(response));
 
-                        if (command.Equals("stop", StringComparison.OrdinalIgnoreCase))
+                        if (command.Equals("stop", StringComparison.OrdinalIgnoreCase) && session.IsAuthenticated)
                         {
                             isRunning = false;
                         }
@@ -73,17 +75,32 @@ class Server
         listener.Stop();
     }
 
-    private string ProcessCommand(string command)
+    private string ProcessCommand(string command, Session session)
     {
         var parts = command.Split(' ');
+        if (parts.Length < 1) return "Invalid command format.";
+
         switch (parts[0].ToLower())
         {
             case "uptime":
-                return JsonConvert.SerializeObject(new { command = "uptime", uptime = (DateTime.Now - startTime).ToString() });
             case "info":
-                return JsonConvert.SerializeObject(new { command = "info", version = "0.2.1", creationDate = startTime.ToString("yyyy-MM-dd") });
+                if (!session.IsAuthenticated)
+                {
+                    return "You must be logged in to use this command.";
+                }
+                if (parts[0].ToLower() == "uptime")
+                {
+                    return JsonConvert.SerializeObject(new { command = "uptime", uptime = (DateTime.Now - startTime).ToString() });
+                }
+                if (parts[0].ToLower() == "info")
+                {
+                    return JsonConvert.SerializeObject(new { command = "info", version = "0.3.0", creationDate = startTime.ToString("yyyy-MM-dd") });
+                }
+                break;
+
             case "help":
-                return JsonConvert.SerializeObject(new { command = "help", commands = new string[] { "uptime - shows the lifetime of the server", "info - shows the current version and server start date", "help - lists available commands", "stop - shuts down the server", "register <username> <password> <email> - registers a new user" } });
+                return JsonConvert.SerializeObject(new { command = "help", commands = new string[] { "uptime - shows the lifetime of the server", "info - shows the current version and server start date", "help - lists available commands", "stop - shuts down the server", "register <username> <password> <email> - registers a new user", "login <username> <password> - sign in the user", "logout - sign out the user" } });
+
             case "register":
                 if (parts.Length < 4)
                 {
@@ -98,11 +115,46 @@ class Server
                 {
                     return $"Failed to register user: {ex.Message}";
                 }
+
+            case "login":
+                if (session.IsAuthenticated)
+                {
+                    return "Already logged in.";
+                }
+                if (parts.Length < 3)
+                {
+                    return "Insufficient data to login. Usage: login <username> <password>";
+                }
+                bool isValidUser = userRepository.ValidateUser(parts[1], parts[2]);
+                if (isValidUser)
+                {
+                    session.Authenticate(parts[1]);
+                    return "Login successful.";
+                }
+                else
+                {
+                    return "Login failed. Incorrect username or password.";
+                }
+
+            case "logout":
+                if (!session.IsAuthenticated)
+                {
+                    return "You are not logged in.";
+                }
+                session.Logout();
+                return "Logout successful.";
+
             case "stop":
-                return JsonConvert.SerializeObject(new { command = "stop", message = "SERVER CLOSED..." });
+                if (session.IsAuthenticated)
+                {
+                    return JsonConvert.SerializeObject(new { command = "stop", message = "SERVER CLOSED..." });
+                }
+                return "You must be logged in to use this command.";
+
             default:
                 return JsonConvert.SerializeObject(new { error = "unknown command", command = parts[0], message = "Try 'help' for a list of available commands." });
         }
+        return "Command processing error.";
     }
 
     static void Main(string[] args)
