@@ -51,6 +51,16 @@ class Client
                     string fullCommand = $"register {username} {password} {email}";
                     SendCommand(stream, fullCommand);
                 }
+                else if (command.ToLower().StartsWith("login"))
+                {
+                    Console.WriteLine("Enter username:");
+                    string username = Console.ReadLine();
+                    Console.WriteLine("Enter password:");
+                    string password = Console.ReadLine();
+
+                    string loginCommand = $"login {username} {password}";
+                    SendCommand(stream, loginCommand);
+                }
                 else
                 {
                     SendCommand(stream, command);
